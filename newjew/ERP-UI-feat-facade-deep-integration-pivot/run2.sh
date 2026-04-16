@@ -6,17 +6,25 @@ cd "$ROOT_DIR"
 
 mkdir -p out
 
-# 1. Find only the UI's Java files
-find src -name "*.java" | sort > sources.txt
-
-# 2. Compile the UI, telling it to use your JARs in the libs folder
-# Linux/macOS uses ':' to separate classpath items. Windows uses ';'
-javac -cp "libs/*" -d out @sources.txt
-
-# 3. Run the application with both the compiled UI and the libs
 case "$(uname -s)" in
 	MINGW*|MSYS*|CYGWIN*) CP_SEP=';' ;;
 	*) CP_SEP=':' ;;
 esac
 
-java -cp "out${CP_SEP}libs/*" com.erp.ERPApplication
+if [ -f "lib/order-processing-v2.jar" ]; then
+    ORDER_JAR="lib/order-processing-v2.jar"
+else
+    ORDER_JAR="lib/order-processing-v1.jar"
+fi
+
+APP_CP="${ORDER_JAR}${CP_SEP}lib/mysql-connector-j-9.6.0.jar"
+
+# 1. Find only the UI's Java files
+find src -name "*.java" | sort > sources.txt
+
+# 2. Compile the UI, telling it to use your JARs in the libs folder
+# Linux/macOS uses ':' to separate classpath items. Windows uses ';'
+javac -cp "${APP_CP}" -d out @sources.txt
+
+# 3. Run the application with both the compiled UI and the libs
+java -cp "out${CP_SEP}${APP_CP}" com.erp.ERPApplication
