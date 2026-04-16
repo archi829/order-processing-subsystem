@@ -12,9 +12,15 @@ import java.awt.*;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
- * Approvals: Manager views pending orders, Approves / Rejects / Sends for Revision.
+ * Approvals panel.
+ *
+ * FIX 1: reject() → controller.reject(owner, id, reason, after)  — 4 args.
+ * FIX 2: sendForRevision() → controller.sendForRevision(owner, id, after) — 3 args.
+ * FIX 3: loadOrders() → controller.loadOrders(owner, status, null) — 3 args.
+ * FIX 4: onStatsLoaded(Map<String,Object>) to match OrderController.OrderListener.
  */
 public class OrderApprovalPanel extends JPanel
         implements OrderController.OrderListener, OrdersHomePanel.Refreshable {
@@ -59,9 +65,9 @@ public class OrderApprovalPanel extends JPanel
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
         actions.setBackground(Constants.BG_WHITE);
-        JButton approve = styled("Approve", Constants.SUCCESS_COLOR, e -> act("approve"));
-        JButton revise  = styled("Send for Revision", Constants.WARNING_COLOR, e -> act("revise"));
-        JButton reject  = styled("Reject", Constants.DANGER_COLOR, e -> act("reject"));
+        JButton approve = styled("Approve",             Constants.SUCCESS_COLOR, e -> act("approve"));
+        JButton revise  = styled("Send for Revision",   Constants.WARNING_COLOR, e -> act("revise"));
+        JButton reject  = styled("Reject",              Constants.DANGER_COLOR,  e -> act("reject"));
         actions.add(approve); actions.add(revise); actions.add(reject);
         right.add(actions, BorderLayout.SOUTH);
 
@@ -71,13 +77,13 @@ public class OrderApprovalPanel extends JPanel
 
         JPanel tools = new JPanel(new FlowLayout(FlowLayout.LEFT));
         tools.setOpaque(false);
-        JButton refresh = new JButton("Refresh");
-        refresh.addActionListener(e -> refresh());
+        JButton refreshBtn = new JButton("Refresh");
+        refreshBtn.addActionListener(e -> refresh());
         tools.add(new JLabel("Orders awaiting approval:"));
-        tools.add(refresh);
+        tools.add(refreshBtn);
 
-        add(tools, BorderLayout.NORTH);
-        add(split, BorderLayout.CENTER);
+        add(tools,  BorderLayout.NORTH);
+        add(split,  BorderLayout.CENTER);
         refresh();
     }
 
@@ -97,13 +103,17 @@ public class OrderApprovalPanel extends JPanel
         }
         String id = (String) model.getValueAt(r, 0);
         switch (what) {
-            case "approve": controller.approve(this, id, this::refresh); break;
+            case "approve":
+                controller.approve(this, id, this::refresh);
+                break;
             case "reject":
                 String why = JOptionPane.showInputDialog(this, "Reason for rejection:");
-                if (why != null) controller.reject(this, id, this::refresh);
+                // FIX: 4-arg reject
+                if (why != null) controller.reject(this, id, why, this::refresh);
                 break;
             case "revise":
                 String note = JOptionPane.showInputDialog(this, "Revision notes:");
+                // FIX: 3-arg sendForRevision
                 if (note != null) controller.sendForRevision(this, id, this::refresh);
                 break;
         }
@@ -119,6 +129,7 @@ public class OrderApprovalPanel extends JPanel
         detail.setText(sb.toString());
     }
 
+    // FIX: 3-arg loadOrders
     @Override
     public void refresh() { controller.loadOrders(this, OrderDTO.PENDING, null); }
 
@@ -135,6 +146,10 @@ public class OrderApprovalPanel extends JPanel
             });
         }
     }
+
+    // FIX: Map<String,Object> to match OrderController.OrderListener
+    @Override
+    public void onStatsLoaded(Map<String, Object> stats) { /* not used in this panel */ }
 
     @Override public void onOrderChanged(OrderDTO o) { refresh(); }
 }

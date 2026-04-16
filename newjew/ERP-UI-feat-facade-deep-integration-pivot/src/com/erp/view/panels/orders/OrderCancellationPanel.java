@@ -10,9 +10,13 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Cancel an order with a reason; refund is automatic for paid/partial orders.
+ * Cancellation panel.
+ *
+ * FIX 1: loadOrders() → 3-arg form.
+ * FIX 2: onStatsLoaded(Map<String,Object>).
  */
 public class OrderCancellationPanel extends JPanel
         implements OrderController.OrderListener, OrdersHomePanel.Refreshable {
@@ -59,12 +63,12 @@ public class OrderCancellationPanel extends JPanel
         cancel.setBackground(Constants.DANGER_COLOR); cancel.setForeground(Constants.TEXT_LIGHT);
         cancel.addActionListener(e -> cancel());
         form.add(cancel);
-        JButton refresh = new JButton("Refresh");
-        refresh.addActionListener(e -> refresh());
-        form.add(refresh);
+        JButton refreshBtn = new JButton("Refresh");
+        refreshBtn.addActionListener(e -> refresh());
+        form.add(refreshBtn);
 
         add(new JLabel("Cancellable orders (not yet delivered):"), BorderLayout.NORTH);
-        add(sp, BorderLayout.CENTER);
+        add(sp,   BorderLayout.CENTER);
         add(form, BorderLayout.SOUTH);
         refresh();
     }
@@ -83,10 +87,12 @@ public class OrderCancellationPanel extends JPanel
                         + "\n\nRefund (if any) will be triggered automatically.",
                 "Confirm Cancellation", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (ok == JOptionPane.YES_OPTION) {
-            controller.cancel(this, id, why, () -> { customReason.setText(""); refresh(); });
+            String finalWhy = why;
+            controller.cancel(this, id, finalWhy, () -> { customReason.setText(""); refresh(); });
         }
     }
 
+    // FIX: 3-arg loadOrders
     @Override
     public void refresh() { controller.loadOrders(this, null, null); }
 
@@ -102,6 +108,10 @@ public class OrderCancellationPanel extends JPanel
             });
         }
     }
+
+    // FIX: Map<String,Object>
+    @Override
+    public void onStatsLoaded(Map<String, Object> stats) { /* not used */ }
 
     @Override public void onOrderChanged(OrderDTO o) { refresh(); }
 }

@@ -21,8 +21,12 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Order Processing dashboard: stat cards + filterable/searchable orders table.
- * Deep integration via {@link OrderController}.
+ * Order dashboard panel.
+ *
+ * FIX 1: loadOrders() → 3-arg form.
+ * FIX 2: onStatsLoaded(Map<String,Object>) to match OrderController.OrderListener.
+ * FIX 3: @Override removed from the old onStatsLoaded(Map<String,Integer>) override
+ *         that caused "does not override" — now there is only one onStatsLoaded.
  */
 public class OrderDashboardPanel extends JPanel
         implements OrderController.OrderListener, OrdersHomePanel.Refreshable {
@@ -35,11 +39,11 @@ public class OrderDashboardPanel extends JPanel
     private static final NumberFormat INR = NumberFormat.getInstance(new Locale("en", "IN"));
 
     private final OrderController controller;
-    private final DashboardCard total   = new DashboardCard("Total Orders", "-", "loading", Constants.PRIMARY_COLOR);
-    private final DashboardCard pending = new DashboardCard("Pending",     "-", "awaiting approval", Constants.WARNING_COLOR);
-    private final DashboardCard inTransit = new DashboardCard("In Transit", "-", "on the road", Constants.ACCENT_COLOR);
-    private final DashboardCard delivered = new DashboardCard("Delivered",  "-", "fulfilled", Constants.SUCCESS_COLOR);
-    private final DashboardCard cancelled = new DashboardCard("Cancelled",  "-", "refunded", Constants.DANGER_COLOR);
+    private final DashboardCard total     = new DashboardCard("Total Orders", "-", "loading",         Constants.PRIMARY_COLOR);
+    private final DashboardCard pending   = new DashboardCard("Pending",      "-", "awaiting approval",Constants.WARNING_COLOR);
+    private final DashboardCard inTransit = new DashboardCard("In Transit",   "-", "on the road",      Constants.ACCENT_COLOR);
+    private final DashboardCard delivered = new DashboardCard("Delivered",    "-", "fulfilled",         Constants.SUCCESS_COLOR);
+    private final DashboardCard cancelled = new DashboardCard("Cancelled",    "-", "refunded",          Constants.DANGER_COLOR);
 
     private final DefaultTableModel model = new DefaultTableModel(COLUMNS, 0) {
         @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -57,8 +61,8 @@ public class OrderDashboardPanel extends JPanel
         setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         setBackground(Constants.BG_LIGHT);
 
-        add(buildStats(), BorderLayout.NORTH);
-        add(buildBody(), BorderLayout.CENTER);
+        add(buildStats(),   BorderLayout.NORTH);
+        add(buildBody(),    BorderLayout.CENTER);
         add(buildActions(), BorderLayout.SOUTH);
 
         refresh();
@@ -96,15 +100,15 @@ public class OrderDashboardPanel extends JPanel
         sp.setBorder(BorderFactory.createLineBorder(new Color(225, 228, 232)));
 
         body.add(tools, BorderLayout.NORTH);
-        body.add(sp, BorderLayout.CENTER);
+        body.add(sp,    BorderLayout.CENTER);
         return body;
     }
 
     private JPanel buildActions() {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         p.setOpaque(false);
-        JButton refresh = new JButton("Refresh");
-        refresh.addActionListener(e -> refresh());
+        JButton refreshBtn = new JButton("Refresh");
+        refreshBtn.addActionListener(e -> refresh());
         JButton simulateFail = new JButton("Simulate Next Fail (retry demo)");
         simulateFail.addActionListener(e -> {
             if (ServiceLocator.getUIService() instanceof MockUIService) {
@@ -129,7 +133,7 @@ public class OrderDashboardPanel extends JPanel
             JOptionPane.showMessageDialog(this, msg.toString(),
                     "Order " + model.getValueAt(row, 0), JOptionPane.INFORMATION_MESSAGE);
         });
-        p.add(simulateFail); p.add(detailsBtn); p.add(refresh);
+        p.add(simulateFail); p.add(detailsBtn); p.add(refreshBtn);
         return p;
     }
 
@@ -145,43 +149,46 @@ public class OrderDashboardPanel extends JPanel
         table.getTableHeader().setReorderingAllowed(false);
     }
 
+    // FIX: 3-arg loadOrders
     @Override
     public void refresh() {
         String status = (String) statusFilter.getSelectedItem();
         String q = searchField.getText().trim();
-        controller.loadOrders(this, (status == null || status.isEmpty()) ? null : status,
+        controller.loadOrders(this,
+                (status == null || status.isEmpty()) ? null : status,
                 q.isEmpty() ? null : q);
         controller.loadStats(this);
     }
-
-    // ===== OrderListener =====
 
     @Override
     public void onOrdersLoaded(List<OrderDTO> orders) {
         model.setRowCount(0);
         for (OrderDTO o : orders) {
             model.addRow(new Object[]{
-                    o.getOrderId(),
-                    o.getCustomerName(),
-                    o.getCarVIN(),
-                    o.getCarModel(),
+                    o.getOrderId(), o.getCustomerName(), o.getCarVIN(), o.getCarModel(),
                     o.getChassisType(),
                     "\u20B9 " + INR.format(o.getAmount() == null ? BigDecimal.ZERO : o.getAmount()),
                     o.getDate() == null ? "" : o.getDate().format(DATE),
-                    o.getStatus(),
-                    o.getPaymentStatus()
+                    o.getStatus(), o.getPaymentStatus()
             });
         }
     }
 
+    // FIX: Map<String,Object> — no @Override clash
     @Override
-    public void onStatsLoaded(Map<String, Integer> s) {
-        total.setValue(String.valueOf(s.getOrDefault("total", 0)));
-        pending.setValue(String.valueOf(s.getOrDefault("pending", 0)));
-        inTransit.setValue(String.valueOf(s.getOrDefault("inTransit", 0)));
-        delivered.setValue(String.valueOf(s.getOrDefault("delivered", 0)));
-        cancelled.setValue(String.valueOf(s.getOrDefault("cancelled", 0)));
+    public void onStatsLoaded(Map<String, Object> stats) {
+        total.setValue(    String.valueOf(getInt(stats, "total")));
+        pending.setValue(  String.valueOf(getInt(stats, "pending")));
+        inTransit.setValue(String.valueOf(getInt(stats, "inTransit")));
+        delivered.setValue(String.valueOf(getInt(stats, "delivered")));
+        cancelled.setValue(String.valueOf(getInt(stats, "cancelled")));
     }
 
     @Override public void onOrderChanged(OrderDTO order) { refresh(); }
+
+    private static int getInt(Map<String, Object> map, String key) {
+        Object v = map.get(key);
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 0;
+    }
 }

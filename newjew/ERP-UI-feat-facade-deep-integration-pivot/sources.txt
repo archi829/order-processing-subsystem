@@ -2,8 +2,8 @@ src/com/erp/controller/HRController.java
 src/com/erp/controller/ManufacturingController.java
 src/com/erp/controller/OrderController.java
 src/com/erp/controller/SupplyChainController.java
-src/com/erp/ERPApplication(old).java
 src/com/erp/ERPApplication.java
+src/com/erp/ERPApplicationOld.java
 src/com/erp/exception/AuthException.java
 src/com/erp/exception/BusinessRuleException.java
 src/com/erp/exception/ERPException.java
@@ -17,6 +17,7 @@ src/com/erp/integration/endpoints/ManufacturingEndpoints.java
 src/com/erp/integration/endpoints/OrdersEndpoints.java
 src/com/erp/integration/endpoints/SupplyChainEndpoints.java
 src/com/erp/integration/IUIService.java
+src/com/erp/integration/MockOrdersEndpoints.java
 src/com/erp/integration/MockUIService.java
 src/com/erp/integration/ServiceLocator.java
 src/com/erp/integration/SqlManufacturingUIService.java

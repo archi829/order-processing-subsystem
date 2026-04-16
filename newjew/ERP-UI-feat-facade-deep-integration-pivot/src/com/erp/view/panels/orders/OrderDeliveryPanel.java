@@ -12,10 +12,14 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Delivery & tracking: Approved orders get shipped with courier + tracking;
- * In-transit orders show shipment info and activity timeline.
+ * Delivery & tracking panel.
+ *
+ * FIX 1: ship() → controller.ship(owner, id, courier, tracking, after) — 5 args.
+ * FIX 2: loadOrders() → 3-arg form.
+ * FIX 3: onStatsLoaded(Map<String,Object>).
  */
 public class OrderDeliveryPanel extends JPanel
         implements OrderController.OrderListener, OrdersHomePanel.Refreshable {
@@ -57,7 +61,8 @@ public class OrderDeliveryPanel extends JPanel
         form.setBackground(Constants.BG_WHITE);
         form.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(4, 4, 4, 4); c.anchor = GridBagConstraints.WEST; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1;
+        c.insets = new Insets(4, 4, 4, 4);
+        c.anchor = GridBagConstraints.WEST; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1;
         c.gridx = 0; c.gridy = 0; form.add(new JLabel("Courier"), c);
         c.gridx = 1; form.add(courier, c);
         c.gridx = 0; c.gridy = 1; form.add(new JLabel("Tracking #"), c);
@@ -82,10 +87,10 @@ public class OrderDeliveryPanel extends JPanel
 
         JPanel tools = new JPanel(new FlowLayout(FlowLayout.LEFT));
         tools.setOpaque(false);
-        JButton refresh = new JButton("Refresh");
-        refresh.addActionListener(e -> refresh());
+        JButton refreshBtn = new JButton("Refresh");
+        refreshBtn.addActionListener(e -> refresh());
         tools.add(new JLabel("Approved & in-transit orders:"));
-        tools.add(refresh);
+        tools.add(refreshBtn);
 
         add(tools, BorderLayout.NORTH);
         add(split, BorderLayout.CENTER);
@@ -98,13 +103,15 @@ public class OrderDeliveryPanel extends JPanel
             ExceptionHandler.handle(this, ValidationException.noVinSelected(table));
             return;
         }
-        String id = (String) model.getValueAt(r, 0);
+        String id  = (String) model.getValueAt(r, 0);
         String trk = tracking.getText().trim();
         if (trk.isEmpty()) trk = "BD" + (100000 + (int)(Math.random() * 9000));
+        // FIX: 5-arg ship
         controller.ship(this, id, (String) courier.getSelectedItem(), trk, this::refresh);
         tracking.setText("");
     }
 
+    // FIX: 3-arg loadOrders
     @Override
     public void refresh() {
         controller.loadOrders(this, null, null);
@@ -124,7 +131,8 @@ public class OrderDeliveryPanel extends JPanel
     public void onOrdersLoaded(List<OrderDTO> orders) {
         model.setRowCount(0);
         for (OrderDTO o : orders) {
-            if (!OrderDTO.APPROVED.equals(o.getStatus()) && !OrderDTO.IN_TRANSIT.equals(o.getStatus())
+            if (!OrderDTO.APPROVED.equals(o.getStatus())
+                    && !OrderDTO.IN_TRANSIT.equals(o.getStatus())
                     && !OrderDTO.DELIVERED.equals(o.getStatus())) continue;
             model.addRow(new Object[]{
                     o.getOrderId(), o.getCustomerName(), o.getCarModel(),
@@ -134,6 +142,10 @@ public class OrderDeliveryPanel extends JPanel
             });
         }
     }
+
+    // FIX: Map<String,Object>
+    @Override
+    public void onStatsLoaded(Map<String, Object> stats) { /* not used */ }
 
     @Override public void onOrderChanged(OrderDTO o) { refresh(); }
 }
