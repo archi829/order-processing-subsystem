@@ -24,10 +24,11 @@ import java.util.Map;
  *         are kept separate to avoid the erasure clash.
  */
 public class IntegratedDashboardPanel extends BasePanel
-        implements OrderController.OrderListener, HRController.HRListener {
+    implements OrderController.OrderListener {
 
     private OrderController orderController;
     private HRController hrController;
+    private HRController.HRListener hrListener;
 
     private DashboardCard ordersTotal;
     private DashboardCard ordersPending;
@@ -48,6 +49,24 @@ public class IntegratedDashboardPanel extends BasePanel
         if (orderController == null) orderController = new OrderController();
         if (hrController == null) hrController = new HRController();
 
+        hrListener = new HRController.HRListener() {
+            @Override
+            public void onStatsLoaded(Map<String, Integer> stats) {
+                workforce.setValue(String.valueOf(stats.getOrDefault("active", 0)));
+                newJoiners.setValue(String.valueOf(stats.getOrDefault("newJoiners", 0)));
+                pendingLeave.setValue(String.valueOf(stats.getOrDefault("pendingLeave", 0)));
+            }
+
+            @Override
+            public void onEmployeesLoaded(List<EmployeeDTO> list) {
+                Map<String, Integer> byDept = new HashMap<>();
+                for (EmployeeDTO e : list) {
+                    byDept.merge(e.getDepartment() == null ? "Other" : e.getDepartment(), 1, Integer::sum);
+                }
+                hrChart.setData(byDept);
+            }
+        };
+
         ordersTotal   = new DashboardCard("Orders",           "-", "all pipelines",    Constants.PRIMARY_COLOR);
         ordersPending = new DashboardCard("Pending Approvals","-", "needs action",     Constants.WARNING_COLOR);
         ordersDelivered = new DashboardCard("Delivered",      "-", "fulfilled",        Constants.SUCCESS_COLOR);
@@ -59,7 +78,7 @@ public class IntegratedDashboardPanel extends BasePanel
         hrChart     = new FakeChartPanel("Workforce by Department",  FakeChartPanel.Style.BAR);
 
         orderController.addListener(this);
-        hrController.addListener(this);
+        hrController.addListener(hrListener);
         greetingLabel = new JLabel();
         greetingLabel.setFont(Constants.FONT_SUBTITLE);
         greetingLabel.setForeground(Constants.TEXT_PRIMARY);
@@ -133,24 +152,6 @@ public class IntegratedDashboardPanel extends BasePanel
         ordersTotal.setValue(String.valueOf(getInt(stats, "total")));
         ordersPending.setValue(String.valueOf(getInt(stats, "pending")));
         ordersDelivered.setValue(String.valueOf(getInt(stats, "delivered")));
-    }
-
-    // ===== HRController.HRListener =====
-
-    /** HR stats use Map<String,Integer> — no clash because it's a different interface. */
-    @Override
-    public void onStatsLoaded(Map<String, Integer> stats) {
-        workforce.setValue(String.valueOf(stats.getOrDefault("active",      0)));
-        newJoiners.setValue(String.valueOf(stats.getOrDefault("newJoiners", 0)));
-        pendingLeave.setValue(String.valueOf(stats.getOrDefault("pendingLeave", 0)));
-    }
-
-    @Override
-    public void onEmployeesLoaded(List<EmployeeDTO> list) {
-        Map<String, Integer> byDept = new HashMap<>();
-        for (EmployeeDTO e : list)
-            byDept.merge(e.getDepartment() == null ? "Other" : e.getDepartment(), 1, Integer::sum);
-        hrChart.setData(byDept);
     }
 
     // ===== helper =====

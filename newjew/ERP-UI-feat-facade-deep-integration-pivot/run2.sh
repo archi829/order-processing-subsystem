@@ -14,4 +14,9 @@ find src -name "*.java" | sort > sources.txt
 javac -cp "libs/*" -d out @sources.txt
 
 # 3. Run the application with both the compiled UI and the libs
-java -cp "out:libs/*" com.erp.ERPApplication
+case "$(uname -s)" in
+	MINGW*|MSYS*|CYGWIN*) CP_SEP=';' ;;
+	*) CP_SEP=':' ;;
+esac
+
+java -cp "out${CP_SEP}libs/*" com.erp.ERPApplication

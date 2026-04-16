@@ -3,7 +3,6 @@ src/com/erp/controller/ManufacturingController.java
 src/com/erp/controller/OrderController.java
 src/com/erp/controller/SupplyChainController.java
 src/com/erp/ERPApplication.java
-src/com/erp/ERPApplicationOld.java
 src/com/erp/exception/AuthException.java
 src/com/erp/exception/BusinessRuleException.java
 src/com/erp/exception/ERPException.java
