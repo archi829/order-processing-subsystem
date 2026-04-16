@@ -115,8 +115,8 @@ public class MockUIService implements IUIService {
         try {
             switch (endpoint) {
                 // Orders
-                case OrdersEndpoints.ORDERS_LIST:      return (T) filterOrders(p);
-                case OrdersEndpoints.ORDERS_STATS:     return (T) orderStats();
+                case "orders/list":      return (T) filterOrders(p);
+                case "orders/stats":     return (T) orderStats();
                 // HR
                 case HREndpoints.HR_EMPLOYEES:     return (T) filterEmployees(p);
                 case HREndpoints.HR_RECRUITMENT:   return (T) recruitmentPipeline();
@@ -159,13 +159,13 @@ public class MockUIService implements IUIService {
                 // Auth
                 case AuthEndpoints.AUTH_LOGIN:          return (R) login((Map<String, Object>) payload);
                 // Orders
-                case OrdersEndpoints.ORDERS_CREATE:     return (R) createOrder((OrderDTO) payload);
-                case OrdersEndpoints.ORDERS_APPROVE:    return (R) updateStatus((String) payload, OrderDTO.APPROVED, "Approved");
-                case OrdersEndpoints.ORDERS_REJECT:     return (R) updateStatus((String) payload, OrderDTO.REJECTED, "Rejected");
-                case OrdersEndpoints.ORDERS_REVISION:   return (R) updateStatus((String) payload, OrderDTO.REVISION, "Sent back for revision");
-                case OrdersEndpoints.ORDERS_SHIP:       return (R) ship((Map<String, Object>) payload);
-                case OrdersEndpoints.ORDERS_PAY:        return (R) pay((Map<String, Object>) payload);
-                case OrdersEndpoints.ORDERS_CANCEL:     return (R) cancel((Map<String, Object>) payload);
+                case "orders/create":   return (R) createOrder((OrderDTO) payload);
+                case "orders/approve":  return (R) updateStatus((String) payload, OrderDTO.APPROVED, "Approved");
+                case "orders/reject":   return (R) updateStatus((String) payload, OrderDTO.REJECTED, "Rejected");
+                case "orders/revision": return (R) updateStatus((String) payload, OrderDTO.REVISION, "Sent back for revision");
+                case "orders/ship":     return (R) ship((Map<String, Object>) payload);
+                case "orders/pay":      return (R) pay((Map<String, Object>) payload);
+                case "orders/cancel":   return (R) cancel((Map<String, Object>) payload);
                 // HR
                 case HREndpoints.HR_EMPLOYEE_UPDATE:    return (R) updateEmployee((EmployeeDTO) payload);
                 case HREndpoints.HR_RECRUITMENT_STAGE: return (R) moveRecruitmentStage((Map<String, Object>) payload);
